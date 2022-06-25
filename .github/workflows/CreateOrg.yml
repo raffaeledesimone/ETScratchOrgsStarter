@@ -7,7 +7,12 @@ jobs:
             ET_CICD: true
         steps:
             # Setup the Vitual Machine
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v3
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: 16
+            - name: Show Node.js version
+              run: node -v
             - name: Create etLogs folder
               run: mkdir -p etLogs
             - name: PWD
@@ -15,14 +20,21 @@ jobs:
               if: ${{ env.ET_CICD  }}
             - name: Export token
               run: echo ${{ secrets.DEVHUB_TOKEN}} > etLogs/token.txt
-            - name: Install tools
+            - name: Install Salesforce tools
               run: |
                   wget https://developer.salesforce.com/media/salesforce-cli/sfdx-linux-amd64.tar.xz
                   mkdir sfdx-cli
                   tar xJf sfdx-linux-amd64.tar.xz -C sfdx-cli --strip-components 1
                   ./sfdx-cli/install
                   sfdx force:lightning:lwc:test:setup
-                  echo 'y' | sfdx plugins:install etcopydata@beta
+            - name: Install ETCopyData tools
+              # run: echo 'y' | sfdx plugins:install etcopydata@beta
+              run: |
+                  git clone https://github.com/eltoroit/ETCopyData.git
+                  cd ETCopyData
+                  npm install
+                  sfdx plugins:link .
+                  cd ..
             - name: Register DevHub
               run: sfdx force:auth:sfdxurl:store -f etLogs/token.txt --setalias DevHub --setdefaultdevhubusername
             # Create scratch org
